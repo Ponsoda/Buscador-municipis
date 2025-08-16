@@ -159,7 +159,7 @@
 
         // Evita duplicats
         if (!trackedMunicipis.some(m => m.toLowerCase() === municipiTrobat.toLowerCase())) {
-          trackedMunicipis.push(municipiTrobat);
+          trackedMunicipis.push(municipiTrobat.toUpperCase());
 
           const li = document.createElement("li");
           li.textContent = municipiTrobat;
