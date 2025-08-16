@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <title>Portal de Municipis</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #74ebd5, #9face6);
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      text-align: center;
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    h1 {
+      margin-bottom: 30px;
+      color: #333;
+    }
+
+    .btn {
+      display: block;
+      margin: 15px auto;
+      padding: 15px 25px;
+      font-size: 18px;
+      font-weight: bold;
+      color: white;
+      background: #4CAF50;
+      border: none;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: 0.3s;
+      width: 250px;
+    }
+
+    .btn:hover {
+      background: #45a049;
+      transform: scale(1.05);
+    }
+
+    .btn:nth-child(2) {
+      background: #2196F3;
+    }
+    .btn:nth-child(2):hover {
+      background: #1976D2;
+    }
+
+    .btn:nth-child(3) {
+      background: #f44336;
+    }
+    .btn:nth-child(3):hover {
+      background: #d32f2f;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Benvingut al Portal de Municipis</h1>
+    <a href="comprobaexistenciamunicipi.html" class="btn">Comprovar Municipi</a>
+    <a href="municipisbeni.html" class="btn">Municipis "Beni-"</a>
+    <a href="municipisal.html" class="btn">Municipis "Al-"</a>
+  </div>
+</body>
+</html>

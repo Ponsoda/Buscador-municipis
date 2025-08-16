@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <title>Comprovar municipis que comencen per Al-</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #f6d365, #fda085);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      text-align: center;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    form {
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      padding: 10px;
+      width: 70%;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 10px 15px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background: #2196F3;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #1976D2;
+    }
+
+    #result {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    #tracked {
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    #tracked h3 {
+      margin-bottom: 10px;
+      color: #444;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background: #e3f2fd;
+      margin: 5px 0;
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+
+    #counter {
+      margin-top: 15px;
+      font-weight: bold;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Comprovar municipis "Al-"</h2>
+    <form id="muniForm">
+      <input type="text" id="municipiInput" name="municipiInput" placeholder="Escriu el nom del municipi">
+      <button type="submit">Comproba</button>
+    </form>
+    <div id="result"></div>
+
+    <div id="tracked">
+      <h3>Municipis "Al-" afegits:</h3>
+      <ul id="list"></ul>
+      <div id="counter">0 de 0 municipis trobats</div>
+    </div>
+  </div>
+
+  <script>
+    let municipisValencians = [];
+    let municipisAl = [];
+    let trackedMunicipis = [];
+
+    async function carregarMunicipis() {
+      try {
+        const response = await fetch("https://ca.wikipedia.org/api/rest_v1/page/html/Llista_dels_municipis_del_País_Valencià");
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, "text/html");
+
+        const files = doc.querySelectorAll("table.wikitable tbody tr");
+
+        files.forEach(tr => {
+          const td = tr.querySelector("td");
+          if (td) {
+            const municipi = td.textContent.trim();
+            if (municipi) municipisValencians.push(municipi);
+          }
+        });
+
+        // Filtrar només els municipis que comencen per "Al"
+        municipisAl = municipisValencians.filter(m => m.toLowerCase().startsWith("al"));
+        updateCounter();
+
+        console.log("Municipis Al- carregats:", municipisAl);
+      } catch (err) {
+        console.error("Error carregant municipis:", err);
+      }
+    }
+
+    function updateCounter() {
+      document.getElementById('counter').textContent =
+        `${trackedMunicipis.length} de ${municipisAl.length} municipis trobats`;
+    }
+
+    carregarMunicipis();
+
+    document.getElementById('muniForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const valor = document.getElementById('municipiInput').value.trim();
+      const valorLower = valor.toLowerCase();
+      const resultDiv = document.getElementById('result');
+
+      const trobat = municipisAl.some(m => m.toLowerCase() === valorLower);
+
+      if (trobat) {
+        resultDiv.textContent = `"${valor}" és un municipi vàlid i comença per "Al-".`;
+        resultDiv.style.color = 'green';
+
+        // Evita duplicats
+        if (!trackedMunicipis.includes(valor)) {
+          trackedMunicipis.push(valor);
+
+          const li = document.createElement("li");
+          li.textContent = valor;
+          document.getElementById('list').appendChild(li);
+          updateCounter();
+        }
+      } else {
+        resultDiv.textContent = `"${valor}" no és un municipi que comence per "Al-".`;
+        resultDiv.style.color = 'red';
+      }
+
+      document.getElementById('municipiInput').value = "";
+    });
+  </script>
+</body>
+</html>
