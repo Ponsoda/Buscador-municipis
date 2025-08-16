@@ -160,10 +160,10 @@
 
         // Evita duplicats
         if (!trackedMunicipis.some(m => m.toLowerCase() === municipiTrobat.toLowerCase())) {
-          trackedMunicipis.push(valor.toUpperCase());
+          trackedMunicipis.push(valor);
 
           const li = document.createElement("li");
-          li.textContent = valor;
+          li.textContent = valor.toUpperCase();
           document.getElementById('list').appendChild(li);
           updateCounter();
         }
