@@ -159,7 +159,7 @@
         resultDiv.style.color = 'green';
 
         // Evita duplicats
-        if (!trackedMunicipis.includes(valor)) {
+        if (!trackedMunicipis.some(m => m.toLowerCase() === municipiTrobat.toLowerCase())) {
           trackedMunicipis.push(valor);
 
           const li = document.createElement("li");
