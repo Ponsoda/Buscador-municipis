@@ -96,7 +96,7 @@
     <h2>Comprovar municipis "Al-"</h2>
     <form id="muniForm">
       <input type="text" id="municipiInput" name="municipiInput" placeholder="Escriu el nom del municipi">
-      <button type="submit">Comproba</button>
+      <button type="submit">Comprova</button>
     </form>
     <div id="result"></div>
 
@@ -146,6 +146,7 @@
 
     carregarMunicipis();
 
+    
     document.getElementById('muniForm').addEventListener('submit', function(e) {
       e.preventDefault();
       const valor = document.getElementById('municipiInput').value.trim();
@@ -157,11 +158,10 @@
       if (trobat) {
         resultDiv.textContent = `"${valor}" és un municipi vàlid i comença per "Al-".`;
         resultDiv.style.color = 'green';
-
+			
         // Evita duplicats
-        if (!trackedMunicipis.some(m => m.toLowerCase() === municipiTrobat.toLowerCase())) {
+        if (!trackedMunicipis.some(m => m.toLowerCase() === valor.toLowerCase())){
           trackedMunicipis.push(valor);
-
           const li = document.createElement("li");
           li.textContent = valor.toUpperCase();
           document.getElementById('list').appendChild(li);
