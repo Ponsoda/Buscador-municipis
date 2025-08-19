@@ -174,16 +174,25 @@
       if (trobat) {
         resultDiv.textContent = `"${valor}" és un municipi vàlid i comença per "Beni-".`;
         resultDiv.style.color = 'green';
-  
+
         if (!trackedMunicipis.has(valorLower)) {
           trackedMunicipis.add(valorLower);
-          const li = document.createElement("li");
-          li.textContent = valor.toUpperCase();;
-          document.getElementById('list').appendChild(li);
+
+          //Reordenar i reconstruir la llista
+          const list = document.getElementById('list');
+          list.innerHTML = ""; // netejar llista
+          Array.from(trackedMunicipis)
+            .sort((a, b) => a.localeCompare(b, 'ca')) // ordenació alfabètica (Català)
+            .forEach(m => {
+              const li = document.createElement("li");
+              li.textContent = m.toUpperCase();
+              list.appendChild(li);
+            });
+
           updateCounter();
         }
       } else if (esSimilar(valor)) {
-        resultDiv.textContent = `Quasi! Sembla que estàs prop.`;
+        resultDiv.textContent = `Quasi! "${valor}" no és exactament el municipi, però estàs prop.`;
         resultDiv.style.color = 'orange';
       } else {
         resultDiv.textContent = `"${valor}" no és un municipi que comence per "Beni-".`;
