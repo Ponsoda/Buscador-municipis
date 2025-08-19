@@ -21,7 +21,7 @@
       border-radius: 20px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.2);
       text-align: center;
-      max-width: 500px;
+      max-width: 600px;
       width: 90%;
     }
 
@@ -51,10 +51,18 @@
       color: white;
       cursor: pointer;
       transition: 0.3s;
+      margin: 5px;
     }
 
     button:hover {
       background: #1976D2;
+    }
+
+    #noPucMes {
+      background: #f44336;
+    }
+    #noPucMes:hover {
+      background: #c62828;
     }
 
     #result {
@@ -78,10 +86,21 @@
     }
 
     li {
-      background: #e3f2fd;
       margin: 5px 0;
       padding: 8px 12px;
       border-radius: 8px;
+    }
+
+    li.trobat {
+      background: #e8f5e9;
+      color: green;
+      font-weight: bold;
+    }
+
+    li.falten {
+      background: #ffebee;
+      color: red;
+      font-weight: bold;
     }
 
     #counter {
@@ -98,10 +117,13 @@
       <input type="text" id="municipiInput" name="municipiInput" placeholder="Escriu el nom del municipi">
       <button type="submit">Comprova</button>
     </form>
+    <!-- 🔹 Botó NO PUC MÉS -->
+    <button id="noPucMes">NO PUC MÉS</button>
+
     <div id="result"></div>
 
     <div id="tracked">
-      <h3>Municipis "Al-" afegits:</h3>
+      <h3>Llistat de municipis "Al-":</h3>
       <ul id="list"></ul>
       <div id="counter">0 de 0 municipis trobats</div>
     </div>
@@ -120,7 +142,7 @@
 
         municipisAl = Array.from(doc.querySelectorAll("table.wikitable tbody tr td:first-child"))
           .map(td => td.textContent.trim())
-          .filter(m => m.toLowerCase().startsWith("al"));
+          .filter(m => m.toLowerCase().startsWith("al")); // 🔹 filtre per AL
 
         updateCounter();
       } catch (err) {
@@ -133,12 +155,10 @@
         `${trackedMunicipis.size} de ${municipisAl.length} municipis trobats`;
     }
 
-    // Distància de Levenshtein
     function levenshtein(a, b) {
       const dp = Array.from({ length: a.length + 1 }, (_, i) =>
         Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : (j === 0 ? i : 0)))
       );
-
       for (let i = 1; i <= a.length; i++) {
         for (let j = 1; j <= b.length; j++) {
           if (a[i - 1] === b[j - 1]) {
@@ -155,7 +175,6 @@
       return dp[a.length][b.length];
     }
 
-    // Comprovar similitud
     function esSimilar(nom) {
       return municipisAl.some(m => levenshtein(nom.toLowerCase(), m.toLowerCase()) <= 2);
     }
@@ -177,23 +196,12 @@
 
         if (!trackedMunicipis.has(valorLower)) {
           trackedMunicipis.add(valorLower);
-
-          // Reordenar la llista
-          const list = document.getElementById('list');
-          list.innerHTML = "";
-          Array.from(trackedMunicipis)
-            .sort((a, b) => a.localeCompare(b, 'ca'))
-            .forEach(m => {
-              const li = document.createElement("li");
-              li.textContent = m.toUpperCase();
-              list.appendChild(li);
-            });
-
+          mostrarLlista();
           updateCounter();
         }
-      } else if (esSimilar(valor)) {
-        resultDiv.textContent = `Revisa-ho, sembla que estàs prop.`;
-        resultDiv.style.color = 'orange';
+      } else if (esSimilar(valor)) { 
+        resultDiv.textContent = `Quasi! "${valor}" no és exactament el municipi, però estàs prop.`; 
+        resultDiv.style.color = 'orange'; 
       } else {
         resultDiv.textContent = `"${valor}" no és un municipi que comence per "Al-".`;
         resultDiv.style.color = 'red';
@@ -201,6 +209,38 @@
 
       input.value = "";
     });
+
+    document.getElementById('noPucMes').addEventListener('click', mostrarTot);
+
+    function mostrarLlista() {
+      const list = document.getElementById('list');
+      list.innerHTML = "";
+      Array.from(trackedMunicipis)
+        .sort((a, b) => a.localeCompare(b, 'ca'))
+        .forEach(m => {
+          const li = document.createElement("li");
+          li.textContent = m.toUpperCase();
+          li.classList.add("trobat");
+          list.appendChild(li);
+        });
+    }
+
+    function mostrarTot() {
+      const list = document.getElementById('list');
+      list.innerHTML = "";
+      municipisAl
+        .sort((a, b) => a.localeCompare(b, 'ca'))
+        .forEach(m => {
+          const li = document.createElement("li");
+          li.textContent = m.toUpperCase();
+          if (trackedMunicipis.has(m.toLowerCase())) {
+            li.classList.add("trobat");
+          } else {
+            li.classList.add("falten");
+          }
+          list.appendChild(li);
+        });
+    }
 
     carregarMunicipis();
   </script>
