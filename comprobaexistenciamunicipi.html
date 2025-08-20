@@ -224,7 +224,11 @@
       input.value = "";
     });
 
-    document.getElementById('noPucMes').addEventListener('click', mostrarTot);
+    document.getElementById('noPucMes').addEventListener('click', function () {
+      if (confirm("Segur que vols mostrar tots els municipis?")) {
+        mostrarTot();
+      }
+    });
 
     function mostrarLlista() {
       const list = document.getElementById('list');
