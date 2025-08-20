@@ -21,7 +21,7 @@
       border-radius: 20px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.2);
       text-align: center;
-      max-width: 600px;
+      max-width: 700px;
       width: 90%;
     }
 
@@ -51,10 +51,18 @@
       color: white;
       cursor: pointer;
       transition: 0.3s;
+      margin: 5px;
     }
 
     button:hover {
       background: #1976D2;
+    }
+
+    #noPucMes {
+      background: #f44336;
+    }
+    #noPucMes:hover {
+      background: #c62828;
     }
 
     #result {
@@ -75,13 +83,32 @@
     ul {
       list-style: none;
       padding: 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr); /* 3 columnes */
+      gap: 8px;
     }
 
     li {
-      background: #e3f2fd;
-      margin: 5px 0;
-      padding: 8px 12px;
+      min-height: 40px;
+      padding: 6px 10px;
       border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
+      display: flex;              
+      justify-content: center;
+      align-items: center;
+    }
+
+    li.trobat {
+      background: #e8f5e9;
+      color: green;
+      font-weight: bold;
+    }
+
+    li.falten {
+      background: #ffebee;
+      color: red;
+      font-weight: bold;
     }
 
     #counter {
@@ -98,10 +125,12 @@
       <input type="text" id="municipiInput" name="municipiInput" placeholder="Escriu el nom del municipi">
       <button type="submit">Comprova</button>
     </form>
+    <button id="noPucMes">NO PUC MÉS</button>
+
     <div id="result"></div>
 
     <div id="tracked">
-      <h3>Municipis trobats:</h3>
+      <h3>Llistat de municipis trobats:</h3>
       <ul id="list"></ul>
       <div id="counter">0 de 0 municipis trobats</div>
     </div>
@@ -109,70 +138,122 @@
 
   <script>
     let municipisValencians = [];
-    let trackedMunicipis = [];
+    const trackedMunicipis = new Set();
 
-    // Carregar la llista des de la Viquipèdia
+    function netejaArticle(nom) {
+      return nom.replace(/^(l'|el |la |les |els )/i, '').trim();
+    }
+
     async function carregarMunicipis() {
       try {
         const response = await fetch("https://ca.wikipedia.org/api/rest_v1/page/html/Llista_dels_municipis_del_País_Valencià");
         const text = await response.text();
-
-        // Parsejar el HTML rebut
         const parser = new DOMParser();
         const doc = parser.parseFromString(text, "text/html");
 
-        const files = doc.querySelectorAll("table.wikitable tbody tr");
-
-        files.forEach(tr => {
-          const td = tr.querySelector("td");
-          if (td) {
-            const municipi = td.textContent.trim();
-            if (municipi) municipisValencians.push(municipi);
-          }
-        });
+        municipisValencians = Array.from(doc.querySelectorAll("table.wikitable tbody tr td:first-child"))
+          .map(td => td.textContent.trim());
 
         updateCounter();
-        console.log("Municipis carregats:", municipisValencians);
       } catch (err) {
-        console.error("Error carregant municipis:", err);
+        document.getElementById('result').textContent = "⚠️ Error carregant municipis.";
       }
     }
 
     function updateCounter() {
       document.getElementById('counter').textContent =
-        `${trackedMunicipis.length} de ${municipisValencians.length} municipis trobats`;
+        `${trackedMunicipis.size} de ${municipisValencians.length} municipis trobats`;
     }
 
-    carregarMunicipis();
+    function levenshtein(a, b) {
+      const dp = Array.from({ length: a.length + 1 }, (_, i) =>
+        Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : (j === 0 ? i : 0)))
+      );
+      for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+          if (a[i - 1] === b[j - 1]) {
+            dp[i][j] = dp[i - 1][j - 1];
+          } else {
+            dp[i][j] = Math.min(
+              dp[i - 1][j] + 1,
+              dp[i][j - 1] + 1,
+              dp[i - 1][j - 1] + 1
+            );
+          }
+        }
+      }
+      return dp[a.length][b.length];
+    }
+
+    function esSimilar(nom) {
+      const nomNet = netejaArticle(nom.toLowerCase());
+      return municipisValencians.some(m => levenshtein(netejaArticle(m.toLowerCase()), nomNet) <= 2);
+    }
 
     document.getElementById('muniForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      const valor = document.getElementById('municipiInput').value.trim();
+      const input = document.getElementById('municipiInput');
+      const valor = input.value.trim();
+      if (!valor) return;
+
+      const nomNet = netejaArticle(valor.toLowerCase());
       const resultDiv = document.getElementById('result');
 
-      // Buscar coincidència exacta
-      const municipiTrobat = municipisValencians.find(m => m.toLowerCase() === valor.toLowerCase());
+      const trobat = municipisValencians.some(m => netejaArticle(m.toLowerCase()) === nomNet);
 
-      if (municipiTrobat) {
-        resultDiv.textContent = `"${municipiTrobat}" és un municipi vàlid seguint la llista oficial.`;
+      if (trobat) {
+        resultDiv.textContent = `"${valor}" és un municipi vàlid seguint la llista oficial.`;
         resultDiv.style.color = 'green';
 
-        // Evita duplicats
-        if (!trackedMunicipis.some(m => m.toLowerCase() === municipiTrobat.toLowerCase())) {
-          trackedMunicipis.push(municipiTrobat);
-
-          const li = document.createElement("li");
-          li.textContent = municipiTrobat.toUpperCase();
-          document.getElementById('list').appendChild(li);
+        if (!trackedMunicipis.has(nomNet)) {
+          trackedMunicipis.add(nomNet);
+          mostrarLlista();
           updateCounter();
         }
+      } else if (esSimilar(valor)) {
+        resultDiv.textContent = `Quasi! "${valor}" no és exactament el municipi, però estàs prop.`;
+        resultDiv.style.color = 'orange';
       } else {
         resultDiv.textContent = `"${valor}" no consta com a municipi oficial en valencià.`;
         resultDiv.style.color = 'red';
       }
 
-      document.getElementById('municipiInput').value = "";
+      input.value = "";
     });
+
+    document.getElementById('noPucMes').addEventListener('click', mostrarTot);
+
+    function mostrarLlista() {
+      const list = document.getElementById('list');
+      list.innerHTML = "";
+      Array.from(trackedMunicipis)
+        .sort((a, b) => a.localeCompare(b, 'ca'))
+        .forEach(m => {
+          const li = document.createElement("li");
+          li.textContent = m.toUpperCase();
+          li.classList.add("trobat");
+          list.appendChild(li);
+        });
+    }
+
+    function mostrarTot() {
+      const list = document.getElementById('list');
+      list.innerHTML = "";
+      municipisValencians
+        .sort((a, b) => a.localeCompare(b, 'ca'))
+        .forEach(m => {
+          const li = document.createElement("li");
+          li.textContent = m.toUpperCase();
+          if (trackedMunicipis.has(netejaArticle(m.toLowerCase()))) {
+            li.classList.add("trobat");
+          } else {
+            li.classList.add("falten");
+          }
+          list.appendChild(li);
+        });
+    }
+
+    carregarMunicipis();
   </script>
 </body>
 </html>
