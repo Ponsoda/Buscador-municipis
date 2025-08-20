@@ -83,12 +83,16 @@
     ul {
       list-style: none;
       padding: 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr); /* 3 columnes */
+      gap: 8px;
     }
 
     li {
-      margin: 5px 0;
-      padding: 8px 12px;
+      padding: 6px 10px;
       border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
     }
 
     li.trobat {

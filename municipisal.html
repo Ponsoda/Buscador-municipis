@@ -83,12 +83,16 @@
     ul {
       list-style: none;
       padding: 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr); /* 3 columnes */
+      gap: 8px;
     }
 
     li {
-      margin: 5px 0;
-      padding: 8px 12px;
+      padding: 6px 10px;
       border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
     }
 
     li.trobat {
@@ -119,37 +123,22 @@
     </form>
     <!-- Botó NO PUC MÉS -->
     <button id="noPucMes">NO PUC MÉS</button>
+
     <div id="result"></div>
+
     <div id="tracked">
-      <h3>Municipis "Al-" afegits:</h3>
+      <h3>Llistat de municipis "Al-":</h3>
       <ul id="list"></ul>
       <div id="counter">0 de 0 municipis trobats</div>
     </div>
   </div>
 
   <script>
-    let municipisValencians = [];
     let municipisAl = [];
-    let trackedMunicipis = [];
+    const trackedMunicipis = new Set();
 
     function netejaArticle(nom) {
       return nom.replace(/^(l'|el |la |les |els )/i, '').trim();
-    }
-
-    function levenshtein(a, b) {
-      const matrix = Array.from({ length: b.length + 1 }, (_, i) => [i]);
-      for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
-      for (let i = 1; i <= b.length; i++) {
-        for (let j = 1; j <= a.length; j++) {
-          if (b[i - 1] === a[j - 1]) matrix[i][j] = matrix[i - 1][j - 1];
-          else matrix[i][j] = Math.min(
-            matrix[i - 1][j] + 1,
-            matrix[i][j - 1] + 1,
-            matrix[i - 1][j - 1] + 1
-          );
-        }
-      }
-      return matrix[b.length][a.length];
     }
 
     async function carregarMunicipis() {
@@ -158,58 +147,65 @@
         const text = await response.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(text, "text/html");
-        const files = doc.querySelectorAll("table.wikitable tbody tr");
 
-        files.forEach(tr => {
-          const td = tr.querySelector("td");
-          if (td) {
-            const municipi = td.textContent.trim();
-            if (municipi) municipisValencians.push(municipi);
-          }
-        });
+        municipisAl = Array.from(doc.querySelectorAll("table.wikitable tbody tr td:first-child"))
+          .map(td => td.textContent.trim())
+          .filter(m => netejaArticle(m.toLowerCase()).startsWith("al"));
 
-        municipisAl = municipisValencians.filter(m => netejaArticle(m.toLowerCase()).startsWith("al"));
-        municipisAl.sort((a, b) => a.localeCompare(b, 'ca'));
         updateCounter();
-        console.log("Municipis Al- carregats:", municipisAl);
       } catch (err) {
-        console.error("Error carregant municipis:", err);
+        document.getElementById('result').textContent = "⚠️ Error carregant municipis.";
       }
     }
 
     function updateCounter() {
       document.getElementById('counter').textContent =
-        `${trackedMunicipis.length} de ${municipisAl.length} municipis trobats`;
+        `${trackedMunicipis.size} de ${municipisAl.length} municipis trobats`;
     }
 
-    function esSimilar(valor) {
-      const valorNet = netejaArticle(valor.toLowerCase());
-      return municipisAl.some(m => levenshtein(netéjaArticle(m.toLowerCase()), valorNet) <= 2);
+    function levenshtein(a, b) {
+      const dp = Array.from({ length: a.length + 1 }, (_, i) =>
+        Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : (j === 0 ? i : 0)))
+      );
+      for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+          if (a[i - 1] === b[j - 1]) {
+            dp[i][j] = dp[i - 1][j - 1];
+          } else {
+            dp[i][j] = Math.min(
+              dp[i - 1][j] + 1,
+              dp[i][j - 1] + 1,
+              dp[i - 1][j - 1] + 1
+            );
+          }
+        }
+      }
+      return dp[a.length][b.length];
     }
 
-    carregarMunicipis();
+    function esSimilar(nom) {
+      const nomNet = netejaArticle(nom.toLowerCase());
+      return municipisAl.some(m => levenshtein(netejaArticle(m.toLowerCase()), nomNet) <= 2);
+    }
 
     document.getElementById('muniForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      const valor = document.getElementById('municipiInput').value.trim();
-      const valorNet = netejaArticle(valor.toLowerCase());
+      const input = document.getElementById('municipiInput');
+      const valor = input.value.trim();
+      if (!valor) return;
+
+      const nomNet = netejaArticle(valor.toLowerCase());
       const resultDiv = document.getElementById('result');
 
-      const trobat = municipisAl.some(m => netejaArticle(m.toLowerCase()) === valorNet);
+      const trobat = municipisAl.some(m => netejaArticle(m.toLowerCase()) === nomNet);
 
       if (trobat) {
         resultDiv.textContent = `"${valor}" és un municipi vàlid i comença per "Al-".`;
         resultDiv.style.color = 'green';
 
-        if (!trackedMunicipis.some(m => m.toLowerCase() === valor.toLowerCase())) {
-          trackedMunicipis.push(valor);
-          trackedMunicipis.sort((a,b) => a.toUpperCase().localeCompare(b.toUpperCase(), 'ca'));
-          document.getElementById('list').innerHTML = '';
-          trackedMunicipis.forEach(m => {
-            const li = document.createElement("li");
-            li.textContent = m.toUpperCase();
-            document.getElementById('list').appendChild(li);
-          });
+        if (!trackedMunicipis.has(nomNet)) {
+          trackedMunicipis.add(nomNet);
+          mostrarLlista();
           updateCounter();
         }
       } else if (esSimilar(valor)) {
@@ -220,19 +216,42 @@
         resultDiv.style.color = 'red';
       }
 
-      document.getElementById('municipiInput').value = "";
+      input.value = "";
     });
 
-    document.getElementById('noPucMes').addEventListener('click', () => {
-      const listEl = document.getElementById('list');
-      listEl.innerHTML = '';
-      municipisAl.forEach(m => {
-        const li = document.createElement("li");
-        li.textContent = m.toUpperCase();
-        if (!trackedMunicipis.some(t => t.toLowerCase() === m.toLowerCase())) li.classList.add('not-found');
-        listEl.appendChild(li);
-      });
-    });
+    document.getElementById('noPucMes').addEventListener('click', mostrarTot);
+
+    function mostrarLlista() {
+      const list = document.getElementById('list');
+      list.innerHTML = "";
+      Array.from(trackedMunicipis)
+        .sort((a, b) => a.localeCompare(b, 'ca'))
+        .forEach(m => {
+          const li = document.createElement("li");
+          li.textContent = m.toUpperCase();
+          li.classList.add("trobat");
+          list.appendChild(li);
+        });
+    }
+
+    function mostrarTot() {
+      const list = document.getElementById('list');
+      list.innerHTML = "";
+      municipisAl
+        .sort((a, b) => a.localeCompare(b, 'ca'))
+        .forEach(m => {
+          const li = document.createElement("li");
+          li.textContent = m.toUpperCase();
+          if (trackedMunicipis.has(netejaArticle(m.toLowerCase()))) {
+            li.classList.add("trobat");
+          } else {
+            li.classList.add("falten");
+          }
+          list.appendChild(li);
+        });
+    }
+
+    carregarMunicipis();
   </script>
 </body>
 </html>
